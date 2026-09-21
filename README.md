@@ -1,6 +1,5 @@
 # Introduction to Heterogeneous Computing
 
-## AI Git Lab Team - Calculator
 
 Teacher: 
 
