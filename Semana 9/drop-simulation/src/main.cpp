@@ -1,0 +1,375 @@
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <filesystem>
+#include <iostream>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/videoio.hpp>
+
+namespace {
+
+// ============================================================================
+// Config: Simulation configuration structure
+// ============================================================================
+// Holds all parameters that define the simulation: grid dimensions, timing,
+// wave physics constants, drop properties, and output path.
+// This centralizes all tunable parameters in one place.
+struct Config {
+    int width = 640;              // Grid width in cells (pixels)
+    int height = 640;             // Grid height in cells (pixels)
+    double seconds = 30.0;        // Total simulation duration in seconds
+    int fps = 30;                 // Frames per second for the output video
+    int steps_per_frame = 1;      // Physics steps computed per video frame
+    float wave_speed = 0.45f;     // Wave propagation speed (c); c² used in the wave equation
+    float damping = 0.006f;       // Global damping coefficient (energy dissipation per step)
+    float edge_damping = 0.035f;  // Additional damping near borders to absorb reflections
+    float drop_radius = 18.0f;    // Gaussian radius of the initial drop perturbation
+    float drop_strength = 1.0f;   // Amplitude of the initial drop perturbation
+    std::string output = "output/drop_simulation.mp4"; // Output video file path
+};
+
+// ============================================================================
+// index_of: Converts 2D coordinates (x, y) to a 1D array index
+// ============================================================================
+// The grid is stored as a flat 1D vector in row-major order.
+// This helper computes the linear index: index = y * width + x.
+int index_of(int x, int y, int width) {
+    return y * width + x;
+}
+
+// ============================================================================
+// add_drop: Initializes the Gaussian drop perturbation at the center
+// ============================================================================
+// Simulates a drop falling at the center of the grid by applying a Gaussian
+// pulse to the 'current' height field and a negative fraction to 'previous'
+// to give the wave an initial downward velocity.
+//
+// The Gaussian formula is: pulse = strength * exp(-r² / (2σ²))
+// where r is the distance from the center and σ = drop_radius.
+//
+// Modifying 'previous' with -0.35 * pulse creates an initial velocity
+// (since velocity ≈ current - previous in the finite difference scheme).
+void add_drop(std::vector<float>& current, std::vector<float>& previous, const Config& cfg) {
+    const float cx = 0.5f * static_cast<float>(cfg.width - 1);   // Center x
+    const float cy = 0.5f * static_cast<float>(cfg.height - 1);  // Center y
+    const float sigma2 = cfg.drop_radius * cfg.drop_radius;      // σ²
+
+    for (int y = 1; y < cfg.height - 1; ++y) {
+        for (int x = 1; x < cfg.width - 1; ++x) {
+            const float dx = static_cast<float>(x) - cx;
+            const float dy = static_cast<float>(y) - cy;
+            const float r2 = dx * dx + dy * dy;                  // Distance² from center
+            const float pulse = cfg.drop_strength * std::exp(-r2 / (2.0f * sigma2));
+            const int idx = index_of(x, y, cfg.width);
+            current[idx] += pulse;          // Raise the surface (height perturbation)
+            previous[idx] -= 0.35f * pulse; // Give initial downward velocity
+        }
+    }
+}
+
+// ============================================================================
+// border_absorption: Computes local damping coefficient for a cell
+// ============================================================================
+// Near the edges of the grid, waves would normally reflect. To simulate an
+// "infinite" pool, this function increases the damping within a 32-pixel
+// band near each border. The damping increases quadratically as the cell
+// gets closer to the edge, absorbing wave energy before it reflects.
+//
+// Returns: cfg.damping (interior) or cfg.damping + edge_damping * t² (near border)
+// where t = 1 - (distance_to_nearest_edge / band_width).
+float border_absorption(int x, int y, const Config& cfg) {
+    constexpr int band = 32;  // Width of the absorption band in pixels
+    const int dist = std::min({x, y, cfg.width - 1 - x, cfg.height - 1 - y});
+    if (dist >= band) {
+        return cfg.damping;   // Interior cell: use base damping only
+    }
+
+    // Quadratic ramp: stronger damping closer to the edge
+    const float t = 1.0f - static_cast<float>(dist) / static_cast<float>(band);
+    return cfg.damping + cfg.edge_damping * t * t;
+}
+
+// ============================================================================
+// simulate_step: Advances the 2D damped wave equation by one time step
+// ============================================================================
+// Implements the finite difference scheme for the 2D wave equation:
+//
+//   next[i] = 2*current[i] - previous[i] + c²*Laplacian - damping*velocity
+//
+// Where:
+//   - Laplacian = current[left] + current[right] + current[up] + current[down]
+//                 - 4*current[center]   (5-point stencil)
+//   - velocity  = current[i] - previous[i]  (finite difference approximation)
+//   - damping   = border_absorption(x, y)   (spatially varying)
+//
+// Boundary cells (x=0, x=width-1, y=0, y=height-1) are left at 0 (Dirichlet).
+// This is the MOST COMPUTATIONALLY INTENSIVE function — it iterates over
+// all interior cells (638 × 638 = 407,044 cells) performing ~15 FLOPs each.
+void simulate_step(const std::vector<float>& previous,
+                   const std::vector<float>& current,
+                   std::vector<float>& next,
+                   const Config& cfg) {
+    const float c2 = cfg.wave_speed * cfg.wave_speed;  // c² precomputed
+
+    std::fill(next.begin(), next.end(), 0.0f);  // Zero out the output buffer
+
+    for (int y = 1; y < cfg.height - 1; ++y) {
+        for (int x = 1; x < cfg.width - 1; ++x) {
+            const int idx = index_of(x, y, cfg.width);
+
+            // 5-point Laplacian stencil (discrete approximation of ∇²)
+            const float laplacian =
+                current[idx - 1] + current[idx + 1] +                    // left + right
+                current[idx - cfg.width] + current[idx + cfg.width] -     // up + down
+                4.0f * current[idx];                                      // center
+
+            // Velocity approximation via finite differences
+            const float velocity = current[idx] - previous[idx];
+
+            // Spatially-varying damping (stronger near borders)
+            const float local_damping = border_absorption(x, y, cfg);
+
+            // Wave equation update: propagation + damping
+            next[idx] = 2.0f * current[idx] - previous[idx] +
+                        c2 * laplacian -
+                        local_damping * velocity;
+        }
+    }
+}
+
+// ============================================================================
+// render_frame: Converts the height field into a grayscale video frame
+// ============================================================================
+// For each pixel, computes a shaded grayscale value using:
+//   1. Surface normal estimation from height gradients (central differences)
+//   2. Diffuse lighting (Lambertian: N · L)
+//   3. Specular highlight (Phong-like: diffuse^24)
+//   4. Wave-based intensity modulation
+//
+// This produces a visually appealing 3D-like rendering of the water surface.
+// This is the SECOND MOST COMPUTATIONALLY INTENSIVE function — it processes
+// all 640×640 = 409,600 pixels with expensive operations (normalize, pow, etc.)
+cv::Mat render_frame(const std::vector<float>& height, const Config& cfg, int frame_number) {
+    cv::Mat image(cfg.height, cfg.width, CV_8UC3);  // Output BGR image
+
+    // Fixed directional light vector (normalized)
+    const cv::Vec3f light_dir = cv::normalize(cv::Vec3f(-0.35f, -0.55f, 0.76f));
+
+    for (int y = 0; y < cfg.height; ++y) {
+        for (int x = 0; x < cfg.width; ++x) {
+            // Clamped neighbors for gradient computation at borders
+            const int xm = std::max(0, x - 1);
+            const int xp = std::min(cfg.width - 1, x + 1);
+            const int ym = std::max(0, y - 1);
+            const int yp = std::min(cfg.height - 1, y + 1);
+
+            // Central differences for surface gradient
+            const float dx = height[index_of(xm, y, cfg.width)] - height[index_of(xp, y, cfg.width)];
+            const float dy = height[index_of(x, ym, cfg.width)] - height[index_of(x, yp, cfg.width)];
+
+            // Surface normal from gradient (scaled by 2.8 for visual effect)
+            const cv::Vec3f normal = cv::normalize(cv::Vec3f(2.8f * dx, 2.8f * dy, 1.0f));
+
+            // Diffuse lighting: dot product of normal and light direction
+            const float diffuse = std::max(0.0f, normal.dot(light_dir));
+
+            // Wave intensity: maps height to brightness [0, 1]
+            const float wave = std::clamp(0.5f + 1.8f * height[index_of(x, y, cfg.width)], 0.0f, 1.0f);
+
+            // Specular highlight: sharp reflection (exponent 24)
+            const float specular = std::pow(std::max(0.0f, diffuse), 24.0f);
+
+            // Combine: base + wave modulation + diffuse shading + specular
+            float intensity = 35.0f + 120.0f * wave;
+            intensity *= 0.60f + 0.65f * diffuse;
+            intensity += 130.0f * specular;
+
+            // Clamp to [0, 255] and write grayscale pixel
+            const auto gray = static_cast<unsigned char>(std::clamp(intensity, 0.0f, 255.0f));
+            image.at<cv::Vec3b>(y, x) = cv::Vec3b(gray, gray, gray);
+        }
+    }
+
+    // Overlay text label on the frame
+    cv::putText(image,
+                "CPU float32 | frame " + std::to_string(frame_number),
+                cv::Point(18, 32),
+                cv::FONT_HERSHEY_SIMPLEX,
+                0.65,
+                cv::Scalar(235, 235, 235),
+                1,
+                cv::LINE_AA);
+
+    return image;
+}
+
+}  // namespace
+
+// ============================================================================
+// main: Entry point — orchestrates the entire simulation pipeline
+// ============================================================================
+// 1. Creates the Config with default parameters
+// 2. Allocates three buffers (previous, current, next) for the wave equation
+// 3. Applies the initial drop perturbation
+// 4. Opens the video writer
+// 5. Runs the simulation loop: for each frame, advance physics then render
+// 6. Reports total time, steps simulated, and throughput (steps/s)
+//
+// EXERCISE C: Manual instrumentation timers have been added to measure
+// the time spent in each function (simulate_step, render_frame, video write).
+int main() {
+    try {
+        const Config cfg;
+        const int total_frames = static_cast<int>(std::round(cfg.seconds * cfg.fps));
+        const std::size_t cells = static_cast<std::size_t>(cfg.width) * static_cast<std::size_t>(cfg.height);
+
+        // Create output directory if it doesn't exist
+        std::filesystem::path output_path(cfg.output);
+        if (output_path.has_parent_path()) {
+            std::filesystem::create_directories(output_path.parent_path());
+        }
+
+        // Allocate three height-field buffers (triple buffering for wave eq.)
+        std::vector<float> previous(cells, 0.0f);  // Height at time t-1
+        std::vector<float> current(cells, 0.0f);    // Height at time t
+        std::vector<float> next(cells, 0.0f);       // Height at time t+1
+
+        // Apply initial Gaussian drop at center
+        add_drop(current, previous, cfg);
+
+        // Open MP4 video writer
+        cv::VideoWriter writer(
+            cfg.output,
+            cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
+            static_cast<double>(cfg.fps),
+            cv::Size(cfg.width, cfg.height));
+
+        if (!writer.isOpened()) {
+            throw std::runtime_error("No se pudo abrir el archivo de salida: " + cfg.output);
+        }
+
+        // ================================================================
+        // EXERCISE C: Profiling accumulators
+        // ================================================================
+        // These variables accumulate the total time spent in each function
+        // across all 900 frames, allowing us to determine which functions
+        // are the most critical (hotspots) for GPU porting.
+        double time_simulate = 0.0;   // Total time in simulate_step()
+        double time_render   = 0.0;   // Total time in render_frame()
+        double time_write    = 0.0;   // Total time in writer.write()
+        double time_swap     = 0.0;   // Total time in buffer swaps
+
+        const auto start = std::chrono::steady_clock::now();
+
+        // === Main simulation loop ===
+        for (int frame = 0; frame < total_frames; ++frame) {
+
+            // --- Physics: advance wave equation (steps_per_frame times) ---
+            for (int step = 0; step < cfg.steps_per_frame; ++step) {
+
+                // TIMER: simulate_step
+                auto t0 = std::chrono::steady_clock::now();
+                simulate_step(previous, current, next, cfg);
+                auto t1 = std::chrono::steady_clock::now();
+                time_simulate += std::chrono::duration<double>(t1 - t0).count();
+
+                // TIMER: buffer swaps
+                auto t2 = std::chrono::steady_clock::now();
+                previous.swap(current);  // Rotate buffers: prev ← current
+                current.swap(next);      // current ← next (next is now free)
+                auto t3 = std::chrono::steady_clock::now();
+                time_swap += std::chrono::duration<double>(t3 - t2).count();
+            }
+
+            // --- Rendering: convert height field to image ---
+            // TIMER: render_frame
+            auto t4 = std::chrono::steady_clock::now();
+            cv::Mat frame_img = render_frame(current, cfg, frame);
+            auto t5 = std::chrono::steady_clock::now();
+            time_render += std::chrono::duration<double>(t5 - t4).count();
+
+            // --- Video I/O: write frame to MP4 ---
+            // TIMER: video write
+            auto t6 = std::chrono::steady_clock::now();
+            writer.write(frame_img);
+            auto t7 = std::chrono::steady_clock::now();
+            time_write += std::chrono::duration<double>(t7 - t6).count();
+
+            // Progress reporting every 10%
+            if (frame % std::max(1, total_frames / 10) == 0) {
+                std::cout << "Frame " << frame << " / " << total_frames << '\n';
+            }
+        }
+
+        const auto end = std::chrono::steady_clock::now();
+        const double elapsed = std::chrono::duration<double>(end - start).count();
+        const double simulated_steps = static_cast<double>(total_frames) * cfg.steps_per_frame;
+
+        // ================================================================
+        // Original performance metrics
+        // ================================================================
+        std::cout << "\nVideo generado: " << cfg.output << '\n';
+        std::cout << "Tiempo: " << elapsed << " s\n";
+        std::cout << "Pasos simulados: " << simulated_steps << '\n';
+        std::cout << "Rendimiento: " << simulated_steps / elapsed << " pasos/s\n";
+
+        // ================================================================
+        // EXERCISE C: CPU Profiling Results
+        // ================================================================
+        double total_profiled = time_simulate + time_render + time_write + time_swap;
+
+        std::cout << "\n========================================\n";
+        std::cout << "   EXERCISE C: CPU PROFILING RESULTS    \n";
+        std::cout << "========================================\n";
+        std::cout << "simulate_step : " << time_simulate << " s\t("
+                  << 100.0 * time_simulate / total_profiled << " %)\n";
+        std::cout << "render_frame  : " << time_render << " s\t("
+                  << 100.0 * time_render / total_profiled << " %)\n";
+        std::cout << "video write   : " << time_write << " s\t("
+                  << 100.0 * time_write / total_profiled << " %)\n";
+        std::cout << "buffer swaps  : " << time_swap << " s\t("
+                  << 100.0 * time_swap / total_profiled << " %)\n";
+        std::cout << "----------------------------------------\n";
+        std::cout << "total profiled: " << total_profiled << " s\n";
+        std::cout << "total elapsed : " << elapsed << " s\n";
+        std::cout << "overhead      : " << elapsed - total_profiled << " s\n";
+        std::cout << "========================================\n";
+
+        // ================================================================
+        // EXERCISE C: GPU Porting Recommendations
+        // ================================================================
+        std::cout << "\n=== GPU PORTING ANALYSIS ===\n";
+
+        // Determine which function takes the most time
+        if (time_simulate >= time_render) {
+            std::cout << "HOTSPOT #1: simulate_step (" 
+                      << 100.0 * time_simulate / total_profiled << " %)\n";
+            std::cout << "HOTSPOT #2: render_frame  (" 
+                      << 100.0 * time_render / total_profiled << " %)\n";
+        } else {
+            std::cout << "HOTSPOT #1: render_frame  (" 
+                      << 100.0 * time_render / total_profiled << " %)\n";
+            std::cout << "HOTSPOT #2: simulate_step (" 
+                      << 100.0 * time_simulate / total_profiled << " %)\n";
+        }
+
+        std::cout << "RECOMMEND PORT: simulate_step (stencil pattern, data-parallel)\n";
+        std::cout << "RECOMMEND PORT: render_frame  (per-pixel, data-parallel)\n";
+        std::cout << "DO NOT PORT:    video write   (I/O bound, OpenCV internal)\n";
+        std::cout << "DO NOT PORT:    buffer swaps  (pointer swap, negligible cost)\n";
+        std::cout << "DO NOT PORT:    add_drop      (runs once, negligible cost)\n";
+
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << '\n';
+        return 1;
+    }
+
+    return 0;
+}
+
