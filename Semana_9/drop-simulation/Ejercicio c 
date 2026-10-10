@@ -1,0 +1,128 @@
+perfilado con timers manuales 
+
+
+Video generado: output/drop_simulation.mp4
+Tiempo: 9.41511 s
+Pasos simulados: 900
+Rendimiento: 95.591 pasos/s
+
+========================================
+   EXERCISE C: CPU PROFILING RESULTS    
+========================================
+simulate_step : 0.825956 s	(8.77316 %)
+render_frame  : 7.4951 s	(79.6116 %)
+video write   : 1.0935 s	(11.615 %)
+buffer swaps  : 2.085e-05 s	(0.000221465 %)
+----------------------------------------
+total profiled: 9.41458 s
+total elapsed : 9.41511 s
+overhead      : 0.000533362 s
+========================================
+
+=== GPU PORTING ANALYSIS ===
+HOTSPOT #1: render_frame  (79.6116 %)
+HOTSPOT #2: simulate_step (8.77316 %)
+RECOMMEND PORT: simulate_step (stencil pattern, data-parallel)
+RECOMMEND PORT: render_frame  (per-pixel, data-parallel)
+DO NOT PORT:    video write   (I/O bound, OpenCV internal)
+DO NOT PORT:    buffer swaps  (pointer swap, negligible cost)
+DO NOT PORT:    add_drop      (runs once, negligible cost)
+
+
+perfilado con perf
+
+Video generado: output/drop_simulation.mp4
+Tiempo: 11.1237 s
+Pasos simulados: 900
+Rendimiento: 80.9086 pasos/s
+
+========================================
+   EXERCISE C: CPU PROFILING RESULTS    
+========================================
+simulate_step : 0.833377 s	(7.4922 %)
+render_frame  : 9.19986 s	(82.7083 %)
+video write   : 1.09 s	(9.79927 %)
+buffer swaps  : 2.027e-05 s	(0.000182231 %)
+----------------------------------------
+total profiled: 11.1233 s
+total elapsed : 11.1237 s
+overhead      : 0.000406984 s
+========================================
+
+=== GPU PORTING ANALYSIS ===
+HOTSPOT #1: render_frame  (82.7083 %)
+HOTSPOT #2: simulate_step (7.4922 %)
+RECOMMEND PORT: simulate_step (stencil pattern, data-parallel)
+RECOMMEND PORT: render_frame  (per-pixel, data-parallel)
+DO NOT PORT:    video write   (I/O bound, OpenCV internal)
+DO NOT PORT:    buffer swaps  (pointer swap, negligible cost)
+DO NOT PORT:    add_drop      (runs once, negligible cost)
+
+ Performance counter stats for './build/drop_simulation':
+
+                83      context-switches                 #      7,4 cs/sec  cs_per_second     
+                31      cpu-migrations                   #      2,8 migrations/sec  migrations_per_second
+             6 999      page-faults                      #    626,5 faults/sec  page_faults_per_second
+         11 171,32 msec task-clock                       #      nan CPUs  CPUs_utilized       
+        11 925 865      branch-misses                    #      0,1 %  branch_miss_rate         (50,00%)
+    11 391 331 393      branches                         #   1019,7 M/sec  branch_frequency     (50,01%)
+    46 693 953 811      cpu-cycles                       #      4,2 GHz  cycles_frequency       (66,68%)
+   120 358 688 772      instructions                     #      2,6 instructions  insn_per_cycle  (50,00%)
+       409 578 966      stalled-cycles-frontend          #     0,01 frontend_cycles_idle        (49,99%)
+
+      11,187167325 seconds time elapsed
+
+      11,048359000 seconds user
+       0,023693000 seconds sys
+
+perf report ---------------------------------------------------------------------------
+
+Samples: 45K of event 'cpu/cycles/P', Event count (approx.): 46475693089
+  Children      Self  Command          Shared Object                Symbol
++   89,78%     0,00%  drop_simulation  drop_simulation              [.] _start                                                                                                               ◆
++   89,78%     0,00%  drop_simulation  libc.so.6                    [.] __libc_start_main                                                                                                    ▒
++   89,77%     0,00%  drop_simulation  libc.so.6                    [.] 0x00007fa7c2c27781                                                                                                   ▒
++   69,07%    51,38%  drop_simulation  drop_simulation              [.] main                                                                                    q                             ▒
++   32,93%     0,00%  drop_simulation  drop_simulation              [.] render_frame (inlined)                                                                                               ▒
++   20,86%    18,19%  drop_simulation  drop_simulation              [.] cv::Vec<unsigned char, 3>& cv::Mat::at<cv::Vec<unsigned char, 3> >(int, int)                                         ▒
++    7,35%     0,00%  drop_simulation  drop_simulation              [.] cv::Vec<float, 3> cv::normalize<float, 3>(cv::Vec<float, 3> const&) (inlined)                                        ▒
++    6,39%     0,00%  drop_simulation  drop_simulation              [.] simulate_step (inlined)                                                                                              ▒
++    5,37%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cc28                                                                                                   ▒
++    4,48%     0,00%  drop_simulation  drop_simulation              [.] cv::Matx<float, 3, 1>::dot(cv::Matx<float, 3, 1> const&) const (inlined)                                             ▒
++    4,12%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cc04                                                                                                   ▒
++    3,44%     0,00%  drop_simulation  drop_simulation              [.] operator*<float, 3> (inlined)                                                                                        ▒
++    3,44%     0,00%  drop_simulation  drop_simulation              [.] cv::Vec<float, 3>::Vec<double>(cv::Matx<float, 3, 1> const&, double, cv::Matx_ScaleOp) (inlined)                     ▒
++    3,44%     0,00%  drop_simulation  drop_simulation              [.] cv::Matx<float, 3, 1>::Matx<double>(cv::Matx<float, 3, 1> const&, double, cv::Matx_ScaleOp) (inlined)                ▒
++    3,36%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cbb0                                                                                                   ▒
++    2,97%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cc24                                                                                                   ▒
++    2,65%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cb6a                                                                                                   ▒
++    2,61%     0,00%  drop_simulation  [unknown]                    [.] 0x6868686868686868                                                                                                   ▒
++    2,60%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cb7a                                                                                                   ▒
++    2,33%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cba2                                                                                                   ▒
++    2,19%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cbb9                                                                                                   ▒
++    2,07%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cbac                                                                                                   ▒
++    2,01%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cb88                                                                                                   ▒
++    1,73%     0,00%  drop_simulation  drop_simulation              [.] std::vector<float, std::allocator<float> >::operator[](unsigned long) (inlined)                                      ▒
++    1,70%     1,70%  drop_simulation  drop_simulation              [.] powf@plt                                                                                                             ▒
++    1,62%     0,00%  drop_simulation  drop_simulation              [.] std::vector<float, std::allocator<float> >::operator[](unsigned long) const (inlined)                                ▒
++    1,62%     0,00%  drop_simulation  drop_simulation              [.] border_absorption (inlined)                                                                                          ▒
++    1,61%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cb95                                                                                                   ▒
++    1,39%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cbed                                                                                                   ▒
++    1,36%     1,36%  drop_simulation  libm.so.6                    [.] 0x0000000000093c2c                                                                                                   ▒
++    1,35%     0,00%  drop_simulation  drop_simulation              [.] float const& std::clamp<float>(float const&, float const&, float const&) (inlined)                                   ▒
++    1,19%     0,00%  drop_simulation  drop_simulation              [.] norm<float, 3, 1> (inlined)                                                                                          ▒
++    1,13%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cbf4                                                                                                   ▒
++    1,11%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cc2c                                                                                                   ▒
++    1,01%     1,01%  drop_simulation  libm.so.6                    [.] 0x0000000000093c00                                                                                                   ▒
++    0,94%     0,00%  drop_simulation  drop_simulation              [.] cv::Mat::channels() const (inlined)                                                                                  ▒
++    0,92%     0,92%  drop_simulation  libm.so.6                    [.] 0x0000000000093af8                                                                                                   ▒
++    0,90%     0,00%  drop_simulation  drop_simulation              [.] cv::Mat::elemSize1() const (inlined)                                                                                 ▒
++    0,90%     0,90%  drop_simulation  libm.so.6                    [.] 0x0000000000093af0                                                                                                   ▒
++    0,88%     0,00%  drop_simulation  libm.so.6                    [.] 0x00007fa7c2f5cc12                                                                                                   ▒
++    0,87%     0,87%  drop_simulation  libm.so.6                    [.] 0x0000000000093c24                                                                                                   ▒
+Tip: Show individual samples with: perf script                                                                                                                                               ▒
+
+
+
+
+

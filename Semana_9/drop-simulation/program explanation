@@ -1,0 +1,112 @@
+The program simulates a drop falling onto a still water surface and generates a 30-second grayscale video showing the wave propagation. It approximates the 2D damped wave equation using a finite 
+difference method on a 640×640 grid. At each time step, the wave equation is solved using a 5-point Laplacian stencil, and energy is gradually dissipated through damping (stronger near the borders 
+to prevent reflections). Each frame is rendered using a simple lighting model (diffuse + specular) that gives the flat height field a 3D water-like appearance.
+
+
+Physical Model
+The program approximates the 2D damped wave equation:
+
+$$\frac{\partial^2 u}{\partial t^2} = c^2 abla^2 u - \gamma \frac{\partial u}{\partial t}$$
+
+Discretized as:
+
+next[i] = 2·current[i] - previous[i] + c²·Laplacian(current[i]) - γ·(current[i] - previous[i])
+Where the 5-point Laplacian stencil approximates ∇²u.
+
+
+
+
+# Program Flow Diagram — drop_simulation
+
+```
+┌─────────────────────────────┐
+│  START: Initialize Config   │
+│  (width, height, fps, etc.) │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│  Allocate Memory            │
+│  3 buffers: previous,       │
+│  current, next              │
+│  (640×640×4 bytes each)     │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│  add_drop()                 │
+│  Apply Gaussian perturbation│
+│  at center of grid          │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│  Open VideoWriter (MP4)     │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│  Start Timer                │
+└──────────────┬──────────────┘
+               │
+               ▼
+       ┌───────────────┐
+       │ frame < 900?  │──── No ───┐
+       └───────┬───────┘           │
+               │ Yes               │
+               ▼                   │
+  ┌────────────────────────┐       │
+  │  SIMULATION LOOP       │       │
+  │                        │       │
+  │  ┌──────────────────┐  │       │
+  │  │ simulate_step()  │  │       │
+  │  │ Wave equation    │  │       │
+  │  │ update (5-point  │  │       │
+  │  │ Laplacian +      │  │       │
+  │  │ damping)         │  │       │
+  │  └────────┬─────────┘  │       │
+  │           │             │       │
+  │           ▼             │       │
+  │  ┌──────────────────┐  │       │
+  │  │ Swap buffers:    │  │       │
+  │  │ prev ← current   │  │       │
+  │  │ current ← next   │  │       │
+  │  └────────┬─────────┘  │       │
+  │           │             │       │
+  │           ▼             │       │
+  │  ┌──────────────────┐  │       │
+  │  │ render_frame()   │  │       │
+  │  │ Height → normals │  │       │
+  │  │ → lighting →     │  │       │
+  │  │ grayscale image  │  │       │
+  │  └────────┬─────────┘  │       │
+  │           │             │       │
+  │           ▼             │       │
+  │  ┌──────────────────┐  │       │
+  │  │ writer.write()   │  │       │
+  │  │ Write frame to   │  │       │
+  │  │ MP4 video        │  │       │
+  │  └────────┬─────────┘  │       │
+  │           │             │       │
+  └───────────┘             │
+               ◄────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│  Stop Timer                 │
+│  Compute elapsed time       │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│  Print Performance Metrics  │
+│  - Total time               │
+│  - Steps simulated (900)    │
+│  - Steps/second             │
+└──────────────┬──────────────┘
+               │
+               ▼
+           ┌───────┐
+           │  END  │
+           └───────┘
+```

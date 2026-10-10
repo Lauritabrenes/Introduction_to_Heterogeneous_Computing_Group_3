@@ -1,0 +1,7 @@
+[
+  {
+    "directory": "/home/el5859/grupo3/Semana 9/drop-simulation/build",
+    "command": "c++  -Idrop_simulation@exe -I. -I.. -I/usr/include/opencv4/opencv -I/usr/include/opencv4 -fdiagnostics-color=always -pipe -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wnon-virtual-dtor -Wextra -Wpedantic -std=c++17 -O3 -MD -MQ 'drop_simulation@exe/src_main.cpp.o' -MF 'drop_simulation@exe/src_main.cpp.o.d' -o 'drop_simulation@exe/src_main.cpp.o' -c ../src/main.cpp",
+    "file": "../src/main.cpp"
+  }
+]
