@@ -61,3 +61,7 @@ Tiempo transferencias D2H: 2.64887 s
 Rendimiento GPU: 20.5378 pasos/s
 Error Absoluto Máximo (CPU vs GPU): 0
 ========================================
+
+
+Reporte de uso AI George:
+https://copilot.cloud.microsoft/chat/share/eyJzaGFyZUlkIjoiMGFmODU3MTMtMWE4Yy00ZjhmLTliOGMtMzExNTM1MTVhZGRhIiwiY29udmVyc2F0aW9uSWQiOiJmMTc2NDhiOS1jN2ZkLTRiN2ItODU3Zi00NDRmZDJiNTg1MjAifQ%3D%3D 
