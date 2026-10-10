@@ -4,3 +4,8 @@
 
 Comando ./build/drop_simulation
 <img width="659" height="537" alt="image" src="https://github.com/user-attachments/assets/2d69d543-351b-4026-8d07-42f0ee2459f7" />
+
+
+Optimizacion 3
+<img width="659" height="537" alt="image" src="https://github.com/user-attachments/assets/29c6ab76-ef2e-4952-9300-021c09cfadfe" />
+
