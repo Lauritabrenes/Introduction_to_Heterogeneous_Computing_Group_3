@@ -1,0 +1,27 @@
+Build started at 2026-10-09T20:27:40.175043
+Main binary: /usr/bin/python3
+Python system: Linux
+The Meson build system
+Version: 0.45.1
+Source dir: /home/el5859/grupo3/Semana 9/drop-simulation
+Build dir: /home/el5859/grupo3/Semana 9/drop-simulation/build
+Build type: native build
+Project name: drop-simulation
+Sanity testing C++ compiler: c++
+Is cross compiler: False.
+Sanity check compiler command line: c++ /home/el5859/grupo3/Semana 9/drop-simulation/build/meson-private/sanitycheckcpp.cc -o /home/el5859/grupo3/Semana 9/drop-simulation/build/meson-private/sanitycheckcpp.exe
+Sanity check compile stdout:
+
+-----
+Sanity check compile stderr:
+
+-----
+Running test binary command: /home/el5859/grupo3/Semana 9/drop-simulation/build/meson-private/sanitycheckcpp.exe
+Native C++ compiler: c++ (gcc 7.5.0 "c++ (Ubuntu/Linaro 7.5.0-3ubuntu1~18.04) 7.5.0")
+Build machine cpu family: aarch64
+Build machine cpu: aarch64
+Found pkg-config: /usr/bin/pkg-config (0.29.1)
+Determining dependency 'opencv4' with pkg-config executable '/usr/bin/pkg-config'
+Native dependency opencv4 found: YES 4.1.1
+Build targets in project: 1
+Found ninja-1.8.2 at /usr/bin/ninja
