@@ -123,7 +123,7 @@ void launch_simulate_step(const float* d_previous, const float* d_current, float
     float c2 = wave_speed * wave_speed;
 
     // Configuración de bloques: 16x16 hilos por bloque (256 hilos total, un estándar en CUDA)
-    dim3 block(32, 8);
+    dim3 block(16, 16);
     // Configuración del Grid: Calculamos cuántos bloques necesitamos para cubrir todo el ancho y alto
     dim3 grid((width + block.x - 1) / block.x, (height + block.y - 1) / block.y);
 
@@ -132,7 +132,7 @@ void launch_simulate_step(const float* d_previous, const float* d_current, float
 }
 
 void launch_render_frame(const float* d_height, uint8_t* d_image_out, int width, int height) {
-    dim3 block(32, 8);
+    dim3 block(16, 16);
     dim3 grid((width + block.x - 1) / block.x, (height + block.y - 1) / block.y);
 
     render_frame_kernel<<<grid, block>>>(d_height, d_image_out, width, height);

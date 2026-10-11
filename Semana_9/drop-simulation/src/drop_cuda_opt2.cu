@@ -26,30 +26,84 @@ __device__ float border_absorption_cuda(int x, int y, int width, int height, flo
 // ============================================================================
 // KERNEL 1: Simulación de la física (Ecuación de onda)
 // ============================================================================
-__global__ void simulate_step_kernel(const float* previous, const float* current, float* next, 
-                                     int width, int height, float c2, float damping, float edge_damping) {
-    
-    // 1. Identificador global del hilo en 2D (Basado en la teoría SIMT del curso)
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
+// ============================================================
+// OPTIMIZACION 2: MEMORIA COMPARTIDA
+// ============================================================
 
-    // 2. Manejo de bordes: Solo procesamos celdas internas, los bordes (x=0, y=0, etc.) se mantienen en 0
-    if (x > 0 && x < width - 1 && y > 0 && y < height - 1) {
-        int idx = y * width + x;
+__global__ void simulate_step_kernel(
+    const float* previous,
+    const float* current,
+    float* next,
+    int width,
+    int height,
+    float c2,
+    float damping,
+    float edge_damping)
+{
+    const int x = blockIdx.x * blockDim.x + threadIdx.x;
+    const int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-        // Laplaciano (stencil de 5 puntos)
-        float laplacian = current[idx - 1] + current[idx + 1] + 
-                          current[idx - width] + current[idx + width] - 
-                          4.0f * current[idx];
+    // Memoria compartida: bloque 32x8 + halo de 1 celda
+    __shared__ float tile[10][34];
 
-        // Velocidad (diferencias finitas)
-        float velocity = current[idx] - previous[idx];
+    const int tx = threadIdx.x;
+    const int ty = threadIdx.y;
 
-        // Absorción en los bordes
-        float local_damping = border_absorption_cuda(x, y, width, height, damping, edge_damping);
+    const int bx = blockIdx.x * blockDim.x;
+    const int by = blockIdx.y * blockDim.y;
 
-        // Actualización de la ecuación de onda
-        next[idx] = 2.0f * current[idx] - previous[idx] + c2 * laplacian - local_damping * velocity;
+    // Identificador del hilo dentro del bloque
+    const int tid = ty * 32 + tx;
+
+    // Carga cooperativa de datos y vecinos
+    for (int i = tid; i < 340; i += 256) {
+
+        const int local_x = i % 34;
+        const int local_y = i / 34;
+
+        int gx = bx + local_x - 1;
+        int gy = by + local_y - 1;
+
+        gx = max(0, min(gx, width - 1));
+        gy = max(0, min(gy, height - 1));
+
+        tile[local_y][local_x] = current[gy * width + gx];
+    }
+
+    // Sincronizacion de hilos
+    __syncthreads();
+
+    // Procesar solamente celdas internas
+    if (x > 0 && x < width - 1 &&
+        y > 0 && y < height - 1) {
+
+        const int idx = y * width + x;
+
+        // Laplaciano usando memoria compartida
+        const float laplacian =
+            tile[ty + 1][tx] +
+            tile[ty + 1][tx + 2] +
+            tile[ty][tx + 1] +
+            tile[ty + 2][tx + 1] -
+            4.0f * tile[ty + 1][tx + 1];
+
+        // Velocidad
+        const float velocity =
+            current[idx] - previous[idx];
+
+        // Absorcion en los bordes
+        const float local_damping =
+            border_absorption_cuda(
+                x, y, width, height,
+                damping, edge_damping
+            );
+
+        // Actualizacion de la ecuacion de onda
+        next[idx] =
+            2.0f * current[idx]
+            - previous[idx]
+            + c2 * laplacian
+            - local_damping * velocity;
     }
 }
 

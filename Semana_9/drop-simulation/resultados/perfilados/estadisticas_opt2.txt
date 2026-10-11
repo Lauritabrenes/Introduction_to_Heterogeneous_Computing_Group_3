@@ -1,0 +1,24 @@
+
+NOTICE: Existing SQLite export found: resultados/perfilados/optimizacion_2.sqlite
+        It is assumed file was previously exported from: resultados/perfilados/optimizacion_2.nsys-rep
+        Consider using --force-export=true if needed.
+
+Processing [resultados/perfilados/optimizacion_2.sqlite] with [/usr/lib/x86_64-linux-gnu/nsight-systems/target-linux-x64/reports/cuda_gpu_kern_sum.py]... 
+
+ ** CUDA GPU Kernel Summary (cuda_gpu_kern_sum):
+
+ Time (%)  Total Time (ns)  Instances  Avg (ns)  Med (ns)  Min (ns)  Max (ns)  StdDev (ns)                                             Name                                           
+ --------  ---------------  ---------  --------  --------  --------  --------  -----------  ------------------------------------------------------------------------------------------
+     57.3       48,824,346        900  54,249.3  54,208.0    53,375    57,248        333.9  simulate_step_kernel(const float *, const float *, float *, int, int, float, float, float)
+     42.7       36,376,452        900  40,418.3  40,384.0    39,935    41,760        224.6  render_frame_kernel(const float *, unsigned char *, int, int)                             
+
+Processing [resultados/perfilados/optimizacion_2.sqlite] with [/usr/lib/x86_64-linux-gnu/nsight-systems/target-linux-x64/reports/cuda_gpu_mem_time_sum.py]... 
+
+ ** CUDA GPU MemOps Summary (by Time) (cuda_gpu_mem_time_sum):
+
+ Time (%)  Total Time (ns)  Count  Avg (ns)   Med (ns)   Min (ns)  Max (ns)  StdDev (ns)           Operation          
+ --------  ---------------  -----  ---------  ---------  --------  --------  -----------  ----------------------------
+     99.9      388,664,492  1,800  215,924.7  230,349.5   184,414   340,029     31,064.4  [CUDA memcpy Device-to-Host]
+      0.1          525,594      2  262,797.0  262,797.0   260,893   264,701      2,692.7  [CUDA memcpy Host-to-Device]
+      0.0            9,120      1    9,120.0    9,120.0     9,120     9,120          0.0  [CUDA memset]               
+

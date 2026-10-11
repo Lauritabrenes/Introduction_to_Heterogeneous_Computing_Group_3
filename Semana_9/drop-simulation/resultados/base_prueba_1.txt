@@ -1,0 +1,22 @@
+Frame 0 / 900
+Frame 90 / 900
+Frame 180 / 900
+Frame 270 / 900
+Frame 360 / 900
+Frame 450 / 900
+Frame 540 / 900
+Frame 630 / 900
+Frame 720 / 900
+Frame 810 / 900
+
+========================================
+   RESULTADOS BASE GPU (EJERCICIO D y E)
+========================================
+Video generado: output/drop_simulation_gpu_base.mp4
+Tiempo Total: 3.37283 s
+Tiempo simulate_step_kernel: 0.0448898 s
+Tiempo render_frame_kernel: 0.0531525 s
+Tiempo transferencias D2H: 0.246227 s
+Rendimiento GPU: 266.838 pasos/s
+Error Absoluto Máximo (CPU vs GPU): 6.58035e-05
+========================================
