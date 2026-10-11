@@ -1,4 +1,4 @@
-perfilado con timers manuales 
+------------------Perfilado con timers manuales --------------------------
 
 
 Video generado: output/drop_simulation.mp4
@@ -29,7 +29,7 @@ DO NOT PORT:    buffer swaps  (pointer swap, negligible cost)
 DO NOT PORT:    add_drop      (runs once, negligible cost)
 
 
-perfilado con perf
+------------------Perfilado con perf--------------------------------------
 
 Video generado: output/drop_simulation.mp4
 Tiempo: 11.1237 s
