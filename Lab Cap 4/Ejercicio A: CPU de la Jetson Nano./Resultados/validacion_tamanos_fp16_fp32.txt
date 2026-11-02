@@ -1,0 +1,49 @@
+===== SOFTMAX FP32 =====
+0.032059
+0.087144
+0.236883
+0.643914
+Suma FP32: 1.000000
+
+===== SOFTMAX FP16 =====
+0.032043
+0.087158
+0.236938
+0.644043
+Suma FP16: 1.000183
+
+===== COMPARACION CONTRA FP64 =====
+Indice	FP64		FP32		FP16		Error FP32	Error FP16
+0	0.032059	0.032059	0.032043	0.000000	0.000015
+1	0.087144	0.087144	0.087158	0.000000	0.000014
+2	0.236883	0.236883	0.236938	0.000000	0.000056
+3	0.643914	0.643914	0.644043	0.000000	0.000129
+
+Error absoluto maximo FP32: 0.000000
+Error absoluto maximo FP16: 0.000129
+
+===== PRUEBAS CON DIFERENTES TAMANOS =====
+
+N = 10
+Suma FP32: 1.000000
+Suma FP16: 0.999889
+Error absoluto maximo FP32: 0.000000
+Error absoluto maximo FP16: 0.000179
+
+N = 100
+Suma FP32: 1.000000
+Suma FP16: 0.999957
+Error absoluto maximo FP32: 0.000000
+Error absoluto maximo FP16: 0.000057
+
+N = 500
+Suma FP32: 1.000000
+Suma FP16: 1.000008
+Error absoluto maximo FP32: 0.000000
+Error absoluto maximo FP16: 0.000015
+
+N = 1000
+Suma FP32: 1.000000
+Suma FP16: 0.999992
+Error absoluto maximo FP32: 0.000000
+Error absoluto maximo FP16: 0.000009

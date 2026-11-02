@@ -1,0 +1,6 @@
+Resultado de Softmax FP32:
+0.032059
+0.087144
+0.236883
+0.643914
+Suma total: 1.000000
