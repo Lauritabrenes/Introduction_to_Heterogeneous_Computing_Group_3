@@ -1,0 +1,6 @@
+Precision: fp16
+N: 100
+Repeticiones: 10000
+Tiempo del intervalo medido (us): 46624.045000
+Tiempo por llamada (us): 4.662405
+Comprobacion: 302.612045

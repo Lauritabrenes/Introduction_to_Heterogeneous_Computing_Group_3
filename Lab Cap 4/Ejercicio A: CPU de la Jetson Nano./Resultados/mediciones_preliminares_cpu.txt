@@ -1,0 +1,145 @@
+===== SOFTMAX FP32 =====
+0.032059
+0.087144
+0.236883
+0.643914
+Suma FP32: 1.000000
+
+===== SOFTMAX FP16 =====
+0.032043
+0.087158
+0.236938
+0.644043
+Suma FP16: 1.000183
+
+===== COMPARACION CONTRA FP64 =====
+Indice	FP64		FP32		FP16		Error FP32	Error FP16
+0	0.032059	0.032059	0.032043	0.000000	0.000015
+1	0.087144	0.087144	0.087158	0.000000	0.000014
+2	0.236883	0.236883	0.236938	0.000000	0.000056
+3	0.643914	0.643914	0.644043	0.000000	0.000129
+
+Error absoluto maximo FP32: 0.000000
+Error absoluto maximo FP16: 0.000129
+
+===== PRUEBAS CON DIFERENTES TAMANOS =====
+
+N = 10
+Suma FP32: 1.000000
+Suma FP16: 0.999889
+Error absoluto maximo FP32: 3.18437945e-08
+Error absoluto maximo FP16: 1.79233208e-04
+Error relativo maximo FP32: 3.72165735e-07
+Error relativo maximo FP16: 1.00937855e-03
+
+N = 100
+Suma FP32: 1.000000
+Suma FP16: 0.999957
+Error absoluto maximo FP32: 7.19334717e-09
+Error absoluto maximo FP16: 5.71430584e-05
+Error relativo maximo FP32: 3.35935335e-07
+Error relativo maximo FP16: 1.61776740e-03
+
+N = 500
+Suma FP32: 1.000000
+Suma FP16: 1.000008
+Error absoluto maximo FP32: 4.57305424e-09
+Error absoluto maximo FP16: 1.45692022e-05
+Error relativo maximo FP32: 6.16447090e-07
+Error relativo maximo FP16: 5.59648217e-03
+
+N = 1000
+Suma FP32: 1.000000
+Suma FP16: 0.999992
+Error absoluto maximo FP32: 2.32649879e-09
+Error absoluto maximo FP16: 9.03189413e-06
+Error relativo maximo FP32: 5.75843480e-07
+Error relativo maximo FP16: 1.01321728e-02
+
+===== MEDICIONES DE TIEMPO CPU =====
+
+N = 10
+FP32 (microsegundos):
+0.063186
+0.064336
+0.067534
+0.086041
+0.090199
+Minimo FP32: 0.063186
+Mediana FP32: 0.067534
+Maximo FP32: 0.090199
+
+FP16 (microsegundos):
+0.323855
+0.326327
+0.355209
+0.378770
+0.425017
+Minimo FP16: 0.323855
+Mediana FP16: 0.355209
+Maximo FP16: 0.425017
+
+N = 100
+FP32 (microsegundos):
+0.454226
+0.567582
+0.625911
+0.652102
+1.532516
+Minimo FP32: 0.454226
+Mediana FP32: 0.625911
+Maximo FP32: 1.532516
+
+FP16 (microsegundos):
+4.434613
+4.584801
+4.634518
+4.683389
+4.938424
+Minimo FP16: 4.434613
+Mediana FP16: 4.634518
+Maximo FP16: 4.938424
+
+N = 500
+FP32 (microsegundos):
+2.268722
+2.281536
+2.465577
+2.936570
+3.629339
+Minimo FP32: 2.268722
+Mediana FP32: 2.465577
+Maximo FP32: 3.629339
+
+FP16 (microsegundos):
+29.811066
+29.907087
+31.857942
+31.936214
+37.676863
+Minimo FP16: 29.811066
+Mediana FP16: 31.857942
+Maximo FP16: 37.676863
+
+N = 1000
+FP32 (microsegundos):
+4.548475
+5.730332
+6.711073
+6.942625
+7.614052
+Minimo FP32: 4.548475
+Mediana FP32: 6.711073
+Maximo FP32: 7.614052
+
+FP16 (microsegundos):
+64.957793
+65.810913
+67.333487
+68.228725
+78.682639
+Minimo FP16: 64.957793
+Mediana FP16: 67.333487
+Maximo FP16: 78.682639
+
+Comprobacion: 25209.785034

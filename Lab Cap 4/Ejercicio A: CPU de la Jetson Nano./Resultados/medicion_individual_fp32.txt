@@ -1,0 +1,6 @@
+Precision: fp32
+N: 100
+Repeticiones: 10000
+Tiempo del intervalo medido (us): 5491.684000
+Tiempo por llamada (us): 0.549168
+Comprobacion: 302.549473

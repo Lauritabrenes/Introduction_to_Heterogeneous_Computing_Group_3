@@ -6,6 +6,10 @@
 #include <iomanip>
 #include <random>
 #include <cstdint>
+#include <numeric>
+#include <utility>
+#include <fstream>
+#include <string>
 
 // ======================================================
 // SOFTMAX FP32
@@ -223,15 +227,34 @@ void probar_tamanos() {
 
 // ======================================================
 // MEDICION DE TIEMPOS DE SOFTMAX
+// Cinco mediciones por configuracion
 // ======================================================
 
 void medir_tiempos() {
 
-    std::vector<int> tamanos = {10, 100, 500, 1000};
+    const std::vector<int> tamanos = {10, 100, 500, 1000};
 
     const int repeticiones = 10000;
+    const int mediciones = 5;
 
-    std::cout << "\n===== MEDICION DE TIEMPOS CPU =====\n";
+    // Crear archivo para guardar las mediciones
+    std::ofstream archivo("Resultados/mediciones_cpu.csv");
+
+    if (!archivo.is_open()) {
+        std::cerr << "Error: no se pudo crear el archivo CSV.\n";
+        return;
+    }
+
+    // Encabezados del CSV
+    archivo << "plataforma,precision,N,medicion,repeticiones,tiempo_us\n";
+
+    archivo << std::fixed << std::setprecision(9);
+
+    // Variable que conserva un resultado observable
+    // para evitar la eliminacion de los calculos.
+    volatile double comprobacion = 0.0;
+
+    std::cout << "\n===== MEDICIONES DE TIEMPO CPU =====\n";
 
     for (int n : tamanos) {
 
@@ -249,53 +272,114 @@ void medir_tiempos() {
         auto calentamiento32 = softmax_fp32(entrada32);
         auto calentamiento16 = softmax_fp16(entrada16);
 
-        // Evitar variables sin utilizar
-        (void)calentamiento32;
-        (void)calentamiento16;
+        comprobacion = comprobacion +
+            static_cast<double>(calentamiento32[0]);
 
-        // Medir FP32
-        auto inicio32 = std::chrono::steady_clock::now();
+        comprobacion = comprobacion +
+            static_cast<double>(calentamiento16[0]);
 
-        for (int r = 0; r < repeticiones; r++) {
-            auto resultado = softmax_fp32(entrada32);
-            (void)resultado;
+        std::vector<double> tiempos32;
+        std::vector<double> tiempos16;
+
+        // Cinco mediciones independientes
+        for (int m = 0; m < mediciones; m++) {
+
+            // Medicion FP32
+            auto inicio32 = std::chrono::steady_clock::now();
+
+            for (int r = 0; r < repeticiones; r++) {
+
+                auto resultado = softmax_fp32(entrada32);
+
+                comprobacion = comprobacion +
+                    static_cast<double>(resultado[0]);
+            }
+
+            auto fin32 = std::chrono::steady_clock::now();
+
+            double tiempo32 =
+                std::chrono::duration<double, std::micro>(
+                    fin32 - inicio32
+                ).count() / repeticiones;
+
+            tiempos32.push_back(tiempo32);
+            archivo << "CPU,FP32,"
+                    << n << ","
+                    << (m + 1) << ","
+                    << repeticiones << ","
+                    << tiempo32 << "\n";
+
+            // Medicion FP16
+            auto inicio16 = std::chrono::steady_clock::now();
+
+            for (int r = 0; r < repeticiones; r++) {
+
+                auto resultado = softmax_fp16(entrada16);
+
+                comprobacion = comprobacion +
+                    static_cast<double>(resultado[0]);
+            }
+
+            auto fin16 = std::chrono::steady_clock::now();
+
+            double tiempo16 =
+                std::chrono::duration<double, std::micro>(
+                    fin16 - inicio16
+                ).count() / repeticiones;
+
+            tiempos16.push_back(tiempo16);
+            archivo << "CPU,FP16,"
+                    << n << ","
+                    << (m + 1) << ","
+                    << repeticiones << ","
+                    << tiempo16 << "\n";
         }
 
-        auto fin32 = std::chrono::steady_clock::now();
-
-        // Medir FP16
-        auto inicio16 = std::chrono::steady_clock::now();
-
-        for (int r = 0; r < repeticiones; r++) {
-            auto resultado = softmax_fp16(entrada16);
-            (void)resultado;
-        }
-
-        auto fin16 = std::chrono::steady_clock::now();
-
-        // Duracion total en microsegundos
-        double tiempo32 =
-            std::chrono::duration<double, std::micro>(
-                fin32 - inicio32
-            ).count();
-
-        double tiempo16 =
-            std::chrono::duration<double, std::micro>(
-                fin16 - inicio16
-            ).count();
-
-        // Tiempo promedio por llamada
-        tiempo32 /= repeticiones;
-        tiempo16 /= repeticiones;
+        // Ordenar para obtener minimo, mediana y maximo
+        std::sort(tiempos32.begin(), tiempos32.end());
+        std::sort(tiempos16.begin(), tiempos16.end());
 
         std::cout << std::fixed << std::setprecision(6);
 
         std::cout << "\nN = " << n << "\n";
-        std::cout << "Tiempo promedio FP32 (us): "
-                  << tiempo32 << "\n";
-        std::cout << "Tiempo promedio FP16 (us): "
-                  << tiempo16 << "\n";
+
+        std::cout << "FP32 (microsegundos):\n";
+
+        for (double tiempo : tiempos32) {
+            std::cout << tiempo << "\n";
+        }
+
+        std::cout << "Minimo FP32: "
+                  << tiempos32.front() << "\n";
+
+        std::cout << "Mediana FP32: "
+                  << tiempos32[mediciones / 2] << "\n";
+
+        std::cout << "Maximo FP32: "
+                  << tiempos32.back() << "\n";
+
+        std::cout << "\nFP16 (microsegundos):\n";
+
+        for (double tiempo : tiempos16) {
+            std::cout << tiempo << "\n";
+        }
+
+        std::cout << "Minimo FP16: "
+                  << tiempos16.front() << "\n";
+
+        std::cout << "Mediana FP16: "
+                  << tiempos16[mediciones / 2] << "\n";
+
+        std::cout << "Maximo FP16: "
+                  << tiempos16.back() << "\n";
     }
+
+    std::cout << "\nComprobacion: "
+              << comprobacion << "\n";
+    
+    archivo.close();
+
+    std::cout << "Archivo CSV guardado en Resultados/mediciones_cpu.csv\n";
 }
 
 
@@ -303,7 +387,140 @@ void medir_tiempos() {
 // PROGRAMA PRINCIPAL
 // ======================================================
 
-int main() {
+int main(int argc, char* argv[]) {
+
+    // ======================================================
+    // PARAMETROS DE EJECUCION
+    // ======================================================
+
+    if (argc > 1) {
+
+        std::string precision = "";
+        int n = 100;
+        int repeticiones = 10000;
+
+        for (int i = 1; i < argc; i++) {
+
+            std::string argumento = argv[i];
+
+            if (argumento == "--precision" && i + 1 < argc) {
+                precision = argv[++i];
+            }
+            else if (argumento == "--n" && i + 1 < argc) {
+                n = std::stoi(argv[++i]);
+            }
+            else if (argumento == "--reps" && i + 1 < argc) {
+                repeticiones = std::stoi(argv[++i]);
+            }
+            else {
+                std::cerr << "Argumento no reconocido: "
+                          << argumento << "\n";
+                return 1;
+            }
+        }
+
+        if (precision != "fp16" && precision != "fp32") {
+            std::cerr << "Error: utiliza --precision fp16 o fp32\n";
+            return 1;
+        }
+
+        if (n <= 0 || n > 1000 || repeticiones <= 0) {
+            std::cerr << "Error: N debe estar entre 1 y 1000 "
+                      << "y las repeticiones deben ser positivas.\n";
+            return 1;
+        }
+
+        // Generar los mismos valores de entrada
+        std::vector<double> entrada = generar_vector(n);
+
+        volatile double comprobacion = 0.0;
+
+        double tiempo_total = 0.0;
+
+        if (precision == "fp32") {
+
+            std::vector<float> datos(n);
+
+            for (int i = 0; i < n; i++) {
+                datos[i] = static_cast<float>(entrada[i]);
+            }
+
+            // Calentamiento
+            auto calentamiento = softmax_fp32(datos);
+            comprobacion = comprobacion +
+                static_cast<double>(calentamiento[0]);
+
+            // Iniciar cronometro
+            auto inicio = std::chrono::steady_clock::now();
+
+            // Ejecutar las repeticiones
+            for (int r = 0; r < repeticiones; r++) {
+                auto resultado = softmax_fp32(datos);
+                comprobacion = comprobacion +
+                    static_cast<double>(resultado[0]);
+            }
+
+            // Detener cronometro
+            auto fin = std::chrono::steady_clock::now();
+
+            // Calcular tiempo en microsegundos
+            tiempo_total = std::chrono::duration<double, std::micro>(
+                fin - inicio
+            ).count();
+
+        } else {
+
+            std::vector<_Float16> datos(n);
+
+            for (int i = 0; i < n; i++) {
+                datos[i] = static_cast<_Float16>(entrada[i]);
+            }
+
+
+            // Calentamiento
+            auto calentamiento = softmax_fp16(datos);
+            comprobacion = comprobacion +
+                static_cast<double>(calentamiento[0]);
+
+            // Iniciar cronometro
+            auto inicio = std::chrono::steady_clock::now();
+
+            // Ejecutar las repeticiones
+            for (int r = 0; r < repeticiones; r++) {
+                auto resultado = softmax_fp16(datos);
+                comprobacion = comprobacion +
+                    static_cast<double>(resultado[0]);
+            }
+
+             // Detener cronometro
+            auto fin = std::chrono::steady_clock::now();
+
+            // Calcular tiempo en microsegundos
+            tiempo_total = std::chrono::duration<double, std::micro>(
+                fin - inicio
+            ).count();
+
+        } // Cierra el bloque FP16
+
+        // Mostrar resultados
+        std::cout << std::fixed << std::setprecision(6);
+
+        std::cout << "Precision: " << precision << "\n";
+        std::cout << "N: " << n << "\n";
+        std::cout << "Repeticiones: " << repeticiones << "\n";
+
+        std::cout << "Tiempo del intervalo medido (us): "
+                  << tiempo_total << "\n";
+
+        std::cout << "Tiempo por llamada (us): "
+                  << tiempo_total / repeticiones << "\n";
+
+        std::cout << "Comprobacion: "
+                  << comprobacion << "\n";
+
+        return 0;
+
+    }
 
     // Vector inicial para comprobar ambas precisiones
     std::vector<float> entrada_fp32 = {1.0f, 2.0f, 3.0f, 4.0f};
