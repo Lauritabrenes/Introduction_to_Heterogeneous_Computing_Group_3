@@ -382,6 +382,102 @@ void medir_tiempos() {
     std::cout << "Archivo CSV guardado en Resultados/mediciones_cpu.csv\n";
 }
 
+// ======================================================
+// VALIDACIONES AUTOMATICAS DE SOFTMAX
+// ======================================================
+
+void validar_softmax() {
+
+    const std::vector<int> tamanos = {10, 100, 500, 1000};
+
+    bool todas_correctas = true;
+
+    std::cout << "\n===== VALIDACIONES AUTOMATICAS =====\n";
+
+    for (int n : tamanos) {
+
+        std::vector<double> entrada = generar_vector(n);
+
+        std::vector<float> entrada32(n);
+        std::vector<_Float16> entrada16(n);
+
+        for (int i = 0; i < n; i++) {
+            entrada32[i] = static_cast<float>(entrada[i]);
+            entrada16[i] = static_cast<_Float16>(entrada[i]);
+        }
+
+        auto referencia = softmax_fp64(entrada);
+        auto salida32 = softmax_fp32(entrada32);
+        auto salida16 = softmax_fp16(entrada16);
+
+        double suma32 = 0.0;
+        double suma16 = 0.0;
+
+        bool rango32 = true;
+        bool rango16 = true;
+
+        for (int i = 0; i < n; i++) {
+
+            double valor32 = static_cast<double>(salida32[i]);
+            double valor16 = static_cast<double>(salida16[i]);
+
+            suma32 += valor32;
+            suma16 += valor16;
+
+            if (!std::isfinite(valor32) ||
+                valor32 < 0.0 || valor32 > 1.0) {
+                rango32 = false;
+            }
+
+            if (!std::isfinite(valor16) ||
+                valor16 < 0.0 || valor16 > 1.0) {
+                rango16 = false;
+            }
+        }
+
+        // Tolerancias para considerar correcta la suma
+        bool suma_correcta32 = std::abs(suma32 - 1.0) < 1e-5;
+        bool suma_correcta16 = std::abs(suma16 - 1.0) < 1e-2;
+
+        // Comparar el indice del valor maximo
+        auto indice_ref = std::distance(
+            referencia.begin(),
+            std::max_element(referencia.begin(), referencia.end())
+        );
+
+        auto indice32 = std::distance(
+            salida32.begin(),
+            std::max_element(salida32.begin(), salida32.end())
+        );
+
+        auto indice16 = std::distance(
+            salida16.begin(),
+            std::max_element(salida16.begin(), salida16.end())
+        );
+
+        bool maximo32 = indice32 == indice_ref;
+        bool maximo16 = indice16 == indice_ref;
+
+        bool correcto32 = rango32 && suma_correcta32 && maximo32;
+        bool correcto16 = rango16 && suma_correcta16 && maximo16;
+
+        todas_correctas = todas_correctas && correcto32 && correcto16;
+
+        std::cout << "\nN = " << n << "\n";
+
+        std::cout << "FP32: "
+                  << (correcto32 ? "PASS" : "FAIL") << "\n";
+
+        std::cout << "FP16: "
+                  << (correcto16 ? "PASS" : "FAIL") << "\n";
+
+        std::cout << "Suma FP32: " << suma32 << "\n";
+        std::cout << "Suma FP16: " << suma16 << "\n";
+    }
+
+    std::cout << "\nResultado general: "
+              << (todas_correctas ? "PASS" : "FAIL") << "\n";
+}
 
 // ======================================================
 // PROGRAMA PRINCIPAL
@@ -611,6 +707,7 @@ std::cout << "Error absoluto maximo FP16: " << error_max_fp16 << "\n";
 // Ejecutar pruebas con diferentes tamanos
 probar_tamanos();
 medir_tiempos();
+validar_softmax();
 
 return 0;
 }
