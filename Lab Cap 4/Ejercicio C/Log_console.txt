@@ -1,0 +1,77 @@
+el5859@kria-83:~/Lab6_EjercicioC$ sudo env PATH=$PATH:/opt/xilinx/xrt/bin XILINX_XRT=/usr /usr/local/share/pynq-venv/bin/python3 host_kv260.py --bit softmax_fp32.bit --precision fp32 --n 100 --reps 1000
+transfer us  median=  201.524  min=  201.311  max=  203.153
+ip       us  median=   25.004  min=   24.995  max=   26.289
+total    us  median=  226.528  min=  226.309  max=  229.443
+sum=1.000000  in_range=True  argmax_ok=True  max_abs=1.132e-08  max_rel=4.161e-07
+Pure IP latency = cosim cycles / clock (e.g. cycles / 100 MHz) -> compare with ip_us
+el5859@kria-83:~/Lab6_EjercicioC$ cat /sys/class/hwmon/hwmon*/power1_input 2>/dev/null
+3170000
+el5859@kria-83:~/Lab6_EjercicioC$ sudo env PATH=$PATH:/opt/xilinx/xrt/bin XILINX_XRT=/usr /usr/local/share/pynq-venv/bin/python3 host_kv260.py --bit softmax_fp32.bit --precision fp32 --n 100 --reps 1000000
+^CTraceback (most recent call last):
+  File "/home/el5859/Lab6_EjercicioC/host_kv260.py", line 85, in <module>
+    dtr, dip, dtot, y = one_call()
+  File "/home/el5859/Lab6_EjercicioC/host_kv260.py", line 63, in one_call
+    yout.sync_from_device()
+  File "/usr/local/share/pynq-venv/lib/python3.10/site-packages/pynq/buffer.py", line 128, in sync_from_device
+    self.invalidate()
+  File "/usr/local/share/pynq-venv/lib/python3.10/site-packages/pynq/buffer.py", line 112, in invalidate
+    self.device.invalidate(
+  File "/usr/local/share/pynq-venv/lib/python3.10/site-packages/pynq/pl_server/xrt_device.py", line 394, in invalidate
+    def invalidate(self, bo, offset, ptr, size):
+KeyboardInterrupt
+
+el5859@kria-83:~/Lab6_EjercicioC$ sudo env PATH=$PATH:/opt/xilinx/xrt/bin XILINX_XRT=/usr /usr/local/share/pynq-venv/bin/python3 host_kv260.py --bit softmax_fp32.bit --precision fp32 --n 10 --reps 1000
+[sudo] password for el5859: 
+transfer us  median=  198.067  min=  197.878  max=  199.058
+ip       us  median=   25.156  min=   25.103  max=   26.175
+total    us  median=  223.222  min=  222.985  max=  225.233
+sum=1.000000  in_range=True  argmax_ok=True  max_abs=1.781e-08  max_rel=2.532e-07
+Pure IP latency = cosim cycles / clock (e.g. cycles / 100 MHz) -> compare with ip_us
+el5859@kria-83:~/Lab6_EjercicioC$ sudo env PATH=$PATH:/opt/xilinx/xrt/bin XILINX_XRT=/usr /usr/local/share/pynq-venv/bin/python3 host_kv260.py --bit softmax_fp32.bit --precision fp32 --n 500 --reps 1000
+transfer us  median=  212.565  min=  212.406  max=  214.227
+ip       us  median=   33.977  min=   33.958  max=   34.901
+total    us  median=  246.542  min=  246.374  max=  249.127
+sum=1.000000  in_range=True  argmax_ok=True  max_abs=1.280e-09  max_rel=3.778e-07
+Pure IP latency = cosim cycles / clock (e.g. cycles / 100 MHz) -> compare with ip_us
+el5859@kria-83:~/Lab6_EjercicioC$ sudo env PATH=$PATH:/opt/xilinx/xrt/bin XILINX_XRT=/usr /usr/local/share/pynq-venv/bin/python3 host_kv260.py --bit softmax_fp32.bit --precision fp32 --n 1000 --reps 1000
+transfer us  median=  228.562  min=  228.075  max=  229.980
+ip       us  median=   49.231  min=   49.097  max=   50.678
+total    us  median=  277.793  min=  277.173  max=  280.658
+sum=1.000000  in_range=True  argmax_ok=True  max_abs=1.243e-09  max_rel=4.496e-07
+Pure IP latency = cosim cycles / clock (e.g. cycles / 100 MHz) -> compare with ip_us
+
+el5859@kria-83:~$ cd ~/Lab6_EjercicioC
+el5859@kria-83:~/Lab6_EjercicioC$ sudo env PATH=$PATH:/opt/xilinx/xrt/bin XILINX_XRT=/usr /usr/local/share/pynq-venv/bin/python3 host_kv260.py --bit softmax_fp16.bit --precision fp16 --n 10 --reps 1000
+[sudo] password for el5859: 
+transfer us  median=  198.831  min=  198.456  max=  200.088
+ip       us  median=   25.092  min=   25.072  max=   26.163
+total    us  median=  223.910  min=  223.549  max=  226.251
+sum=-50053.653091  in_range=False  argmax_ok=False  max_abs=5.194e+04  max_rel=2.025e+06
+Pure IP latency = cosim cycles / clock (e.g. cycles / 100 MHz) -> compare with ip_us
+el5859@kria-83:~/Lab6_EjercicioC$ sudo env PATH=$PATH:/opt/xilinx/xrt/bin XILINX_XRT=/usr /usr/local/share/pynq-venv/bin/python3 host_kv260.py --bit softmax_fp16.bit --precision fp16 --n 100 --reps 1000
+transfer us  median=  202.751  min=  202.646  max=  204.607
+ip       us  median=   25.588  min=   25.552  max=   26.762
+total    us  median=  228.417  min=  228.209  max=  231.369
+sum=1.859459  in_range=False  argmax_ok=True  max_abs=1.788e+00  max_rel=2.065e+01
+Pure IP latency = cosim cycles / clock (e.g. cycles / 100 MHz) -> compare with ip_us
+el5859@kria-83:~/Lab6_EjercicioC$ sudo env PATH=$PATH:/opt/xilinx/xrt/bin XILINX_XRT=/usr /usr/local/share/pynq-venv/bin/python3 host_kv260.py --bit softmax_fp16.bit --precision fp16 --n 500 --reps 1000
+/home/el5859/Lab6_EjercicioC/host_kv260.py:88: RuntimeWarning: invalid value encountered in subtract
+  abs_err = np.abs(yo - yr)
+transfer us  median=  209.500  min=  209.341  max=  209.552
+ip       us  median=   34.270  min=   34.251  max=   35.272
+total    us  median=  243.752  min=  243.592  max=  244.821
+/usr/local/share/pynq-venv/lib/python3.10/site-packages/numpy/core/_methods.py:49: RuntimeWarning: invalid value encountered in reduce
+  return umr_sum(a, axis, dtype, out, keepdims, initial, where)
+sum=nan  in_range=False  argmax_ok=False  max_abs=nan  max_rel=nan
+Pure IP latency = cosim cycles / clock (e.g. cycles / 100 MHz) -> compare with ip_us
+el5859@kria-83:~/Lab6_EjercicioC$ sudo env PATH=$PATH:/opt/xilinx/xrt/bin XILINX_XRT=/usr /usr/local/share/pynq-venv/bin/python3 host_kv260.py --bit softmax_fp16.bit --precision fp16 --n 1000 --reps 1000
+/home/el5859/Lab6_EjercicioC/host_kv260.py:88: RuntimeWarning: invalid value encountered in subtract
+  abs_err = np.abs(yo - yr)
+transfer us  median=  213.909  min=  213.658  max=  214.948
+ip       us  median=   49.536  min=   49.389  max=   50.641
+total    us  median=  263.445  min=  263.047  max=  265.589
+/usr/local/share/pynq-venv/lib/python3.10/site-packages/numpy/core/_methods.py:49: RuntimeWarning: invalid value encountered in reduce
+  return umr_sum(a, axis, dtype, out, keepdims, initial, where)
+sum=nan  in_range=False  argmax_ok=False  max_abs=nan  max_rel=nan
+Pure IP latency = cosim cycles / clock (e.g. cycles / 100 MHz) -> compare with ip_us
+el5859@kria-83:~/Lab6_EjercicioC$ 
