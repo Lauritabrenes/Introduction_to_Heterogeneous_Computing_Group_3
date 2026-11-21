@@ -28,7 +28,7 @@ y_i = \frac{e^{x_i-m}}{\sum_j e^{x_j-m}}
 
 ## 3. Organización de archivos
 
-### Carpeta CPU
+### Código fuente (raíz de la carpeta CPU)
 
 - `softmax_cpu.cpp`: implementación principal de Softmax, validaciones y mediciones.
 - `softmax_cpu_validacion.cpp`: versión de respaldo de las validaciones iniciales.
@@ -47,15 +47,17 @@ y_i = \frac{e^{x_i-m}}{\sum_j e^{x_j-m}}
 - `medicion_individual_fp16.txt`: ejecución individual de FP16.
 - `medicion_individual_fp32.txt`: ejecución individual de FP32.
 - `tiempo_total_cpu.txt`: tiempo total del programa completo de pruebas.
+- `informacion_hardware_codespaces.txt` / `informacion_entorno_codespaces.png`: hardware y software del entorno de medición.
 
 Los archivos de resultados corresponden a pruebas preliminares realizadas en GitHub Codespaces.
 
 ## 4. Compilación en Ubuntu
 
-Desde la carpeta principal del Ejercicio A:
+Desde la carpeta `CPU` (el programa escribe en `Resultados/`):
 
 ```bash
-g++ -O3 -std=c++17 CPU/softmax_cpu.cpp -o CPU/softmax_cpu -lm
+cd CPU
+g++ -O3 -std=c++17 softmax_cpu.cpp -o softmax_cpu -lm
 ```
 
 ## 5. Ejecución
@@ -63,7 +65,7 @@ g++ -O3 -std=c++17 CPU/softmax_cpu.cpp -o CPU/softmax_cpu -lm
 ### Pruebas completas
 
 ```bash
-./CPU/softmax_cpu
+./softmax_cpu
 ```
 
 Este comando ejecuta las validaciones y las mediciones para los tamaños establecidos.
@@ -71,13 +73,13 @@ Este comando ejecuta las validaciones y las mediciones para los tamaños estable
 ### Ejecutar FP16
 
 ```bash
-./CPU/softmax_cpu --precision fp16 --n 100 --reps 10000
+./softmax_cpu --precision fp16 --n 100 --reps 10000
 ```
 
 ### Ejecutar FP32
 
 ```bash
-./CPU/softmax_cpu --precision fp32 --n 100 --reps 10000
+./softmax_cpu --precision fp32 --n 100 --reps 10000
 ```
 
 Los parámetros disponibles son:

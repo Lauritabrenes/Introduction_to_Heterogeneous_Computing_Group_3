@@ -1,0 +1,7 @@
+﻿# Carpeta de trabajo con archivos adicionales: no forma parte de la entrega
+Lab6_EjercicioC/
+
+# Archivos locales del editor
+*.code-workspace
+
+__pycache__/
